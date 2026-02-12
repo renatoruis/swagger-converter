@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Swagger / OpenAPI → YAML</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Outfit', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            ink: '#0f172a',
+            mint: '#2dd4bf',
+            slate: '#1e293b',
+            cream: '#f8fafc',
+          },
+          boxShadow: {
+            'card': '0 4px 24px -4px rgba(0,0,0,0.3), 0 0 0 1px rgba(45,212,191,0.06)',
+            'card-hover': '0 8px 32px -4px rgba(0,0,0,0.35), 0 0 0 1px rgba(45,212,191,0.1)',
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    textarea, pre { font-family: 'JetBrains Mono', monospace; }
+    .panel { background: linear-gradient(160deg, rgba(30,41,59,0.95) 0%, rgba(15,23,42,0.98) 100%); }
+    .btn-mint { transition: transform 0.15s ease, box-shadow 0.15s ease; }
+    .btn-mint:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(45,212,191,0.35); }
+    .btn-mint:active { transform: translateY(0); }
+    .fn-card { transition: background 0.2s ease, border-color 0.2s ease; }
+    .fn-card:hover { background: rgba(30,41,59,0.8); border-color: rgba(45,212,191,0.25); }
+  </style>
+</head>
+<body class="min-h-screen bg-ink text-cream font-sans antialiased">
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 py-10">
+    <header class="mb-12">
+      <div class="inline-flex items-center gap-2 rounded-full bg-mint/10 border border-mint/20 px-4 py-1.5 text-mint text-sm font-medium mb-6">
+        <span class="w-2 h-2 rounded-full bg-mint animate-pulse"></span>
+        Conversor de especificações
+      </div>
+      <h1 class="text-4xl sm:text-5xl font-bold tracking-tight text-white">
+        Swagger / OpenAPI
+        <span class="block mt-1 text-mint">→ YAML</span>
+      </h1>
+      <p class="mt-4 text-slate-400 text-lg max-w-xl leading-relaxed">
+        Cole JSON ou YAML no campo à esquerda. O resultado em YAML formatado aparece à direita.
+      </p>
+    </header>
+
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
+      <div class="flex flex-col panel rounded-2xl border border-slate-600/80 shadow-card p-6">
+        <label for="input" class="block text-sm font-semibold text-mint uppercase tracking-wider mb-3">
+          Entrada
+        </label>
+        <textarea
+          id="input"
+          rows="20"
+          placeholder='Cole aqui: JSON Swagger 2.0, OpenAPI 3 ou YAML'
+          class="w-full px-4 py-3.5 rounded-xl bg-ink/60 border border-slate-600 text-cream placeholder-slate-500 focus:ring-2 focus:ring-mint/40 focus:border-mint outline-none resize-y font-mono text-sm leading-relaxed"
+        ></textarea>
+        <div class="mt-5 flex gap-3 flex-wrap">
+          <button
+            id="convert"
+            class="btn-mint px-6 py-2.5 rounded-xl bg-mint text-ink font-semibold hover:bg-mint/90 focus:ring-2 focus:ring-mint focus:ring-offset-2 focus:ring-offset-ink"
+          >
+            Converter
+          </button>
+          <button
+            id="clear"
+            type="button"
+            class="px-5 py-2.5 rounded-xl border border-slate-500 text-slate-300 hover:bg-slate/50 hover:border-slate-400 focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 focus:ring-offset-ink transition"
+          >
+            Limpar
+          </button>
+        </div>
+      </div>
+
+      <div class="flex flex-col panel rounded-2xl border border-slate-600/80 shadow-card p-6">
+        <label for="output" class="block text-sm font-semibold text-mint uppercase tracking-wider mb-3">
+          Resultado (YAML)
+        </label>
+        <div class="relative flex-1 min-h-[340px] rounded-xl bg-ink/60 border border-slate-600 overflow-hidden">
+          <pre
+            id="output"
+            class="absolute inset-0 w-full h-full px-4 py-3.5 text-slate-300 font-mono text-sm overflow-auto whitespace-pre leading-relaxed"
+          ><span class="text-slate-500">O resultado em YAML aparecerá aqui após a conversão.</span></pre>
+        </div>
+        <div class="mt-5">
+          <button
+            id="copy"
+            type="button"
+            class="px-5 py-2.5 rounded-xl border border-slate-500 text-slate-300 hover:bg-slate/50 hover:border-slate-400 focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 focus:ring-offset-ink transition disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+            disabled
+          >
+            Copiar YAML
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="message" class="mt-6 hidden rounded-xl px-4 py-3 text-sm" role="alert"></div>
+
+    <section class="mt-16 pt-12 border-t border-slate-700/80">
+      <h2 class="text-xl font-semibold text-white mb-2">Listando todas as funções</h2>
+      <p class="text-slate-400 mb-8 max-w-2xl">
+        Esta ferramenta detecta automaticamente o formato da entrada e aplica a ação correspondente:
+      </p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="fn-card rounded-xl border border-slate-600/80 bg-slate/40 p-5">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="w-8 h-8 rounded-lg bg-mint/20 flex items-center justify-center text-mint font-mono text-xs font-bold">1</span>
+            <h3 class="font-semibold text-white">Swagger 2.0 (JSON)</h3>
+          </div>
+          <p class="text-slate-400 text-sm leading-relaxed">
+            Converte para <strong class="text-cream">OpenAPI 3</strong> e exibe o resultado em YAML.
+          </p>
+        </div>
+        <div class="fn-card rounded-xl border border-slate-600/80 bg-slate/40 p-5">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="w-8 h-8 rounded-lg bg-mint/20 flex items-center justify-center text-mint font-mono text-xs font-bold">2</span>
+            <h3 class="font-semibold text-white">Swagger 2.0 (YAML)</h3>
+          </div>
+          <p class="text-slate-400 text-sm leading-relaxed">
+            Converte para <strong class="text-cream">OpenAPI 3</strong> e exibe o resultado em YAML.
+          </p>
+        </div>
+        <div class="fn-card rounded-xl border border-slate-600/80 bg-slate/40 p-5">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="w-8 h-8 rounded-lg bg-mint/20 flex items-center justify-center text-mint font-mono text-xs font-bold">3</span>
+            <h3 class="font-semibold text-white">OpenAPI 3 (JSON)</h3>
+          </div>
+          <p class="text-slate-400 text-sm leading-relaxed">
+            Converte apenas para <strong class="text-cream">YAML</strong>, sem mudar a versão.
+          </p>
+        </div>
+        <div class="fn-card rounded-xl border border-slate-600/80 bg-slate/40 p-5">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="w-8 h-8 rounded-lg bg-mint/20 flex items-center justify-center text-mint font-mono text-xs font-bold">4</span>
+            <h3 class="font-semibold text-white">OpenAPI 3 (YAML)</h3>
+          </div>
+          <p class="text-slate-400 text-sm leading-relaxed">
+            Apenas <strong class="text-cream">reidenta e formata</strong> o YAML.
+          </p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const input = document.getElementById('input');
+    const output = document.getElementById('output');
+    const convertBtn = document.getElementById('convert');
+    const clearBtn = document.getElementById('clear');
+    const copyBtn = document.getElementById('copy');
+    const messageEl = document.getElementById('message');
+
+    function showMessage(text, isError = false) {
+      messageEl.textContent = text;
+      messageEl.className = 'mt-6 rounded-xl px-4 py-3 text-sm ' + (isError ? 'bg-red-500/20 text-red-300 border border-red-500/50' : 'bg-mint/20 text-mint border border-mint/50');
+      messageEl.hidden = false;
+      setTimeout(() => { messageEl.hidden = true; }, 4000);
+    }
+
+    convertBtn.addEventListener('click', async () => {
+      const raw = input.value.trim();
+      if (!raw) {
+        showMessage('Cole JSON ou YAML no campo à esquerda.', true);
+        return;
+      }
+
+      convertBtn.disabled = true;
+      convertBtn.textContent = 'Convertendo…';
+
+      try {
+        const res = await fetch('/api/convert', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content: raw }),
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          showMessage(data.error || 'Erro na conversão', true);
+          output.innerHTML = '<span class="text-slate-500">O resultado em YAML aparecerá aqui após a conversão.</span>';
+          copyBtn.disabled = true;
+          return;
+        }
+
+        output.textContent = data.yaml;
+        copyBtn.disabled = false;
+        showMessage(data.message || 'Pronto. YAML exibido abaixo.');
+      } catch (e) {
+        showMessage('Erro de rede: ' + e.message, true);
+        copyBtn.disabled = true;
+      } finally {
+        convertBtn.disabled = false;
+        convertBtn.textContent = 'Converter';
+      }
+    });
+
+    clearBtn.addEventListener('click', () => {
+      input.value = '';
+      output.innerHTML = '<span class="text-slate-500">O resultado em YAML aparecerá aqui após a conversão.</span>';
+      copyBtn.disabled = true;
+      messageEl.hidden = true;
+    });
+
+    copyBtn.addEventListener('click', async () => {
+      const text = output.textContent;
+      if (!text || text.startsWith('O resultado')) return;
+      try {
+        await navigator.clipboard.writeText(text);
+        showMessage('YAML copiado para a área de transferência.');
+      } catch (e) {
+        showMessage('Não foi possível copiar.', true);
+      }
+    });
+  </script>
+</body>
+</html>

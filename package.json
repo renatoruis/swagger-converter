@@ -1,0 +1,15 @@
+{
+  "name": "swagger-convert",
+  "version": "1.0.0",
+  "description": "Converte Swagger 2.0 JSON para OpenAPI 3 YAML",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "js-yaml": "^4.1.0",
+    "swagger2openapi": "^7.0.8"
+  }
+}
